@@ -27,6 +27,17 @@
           "command": "git-line.copy-line-link"
         }
       ]
+    },
+    "configuration": {
+      "title": "Gitline",
+      "type": "object",
+      "properties": {
+        "gitline.defaultRemote": {
+          "type": "string",
+          "default": "",
+          "description": "The default remote to use when copying the remote link"
+        }
+      }
     }
   },
   "scripts": {
