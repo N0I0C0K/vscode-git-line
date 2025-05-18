@@ -8,23 +8,33 @@ import { relative } from 'path'
 
 const SETTING_NAME = 'gitline'
 
-async function getRemoteFromRepository(repository: gitExtension.Repository) {
+async function setDefaultRemote(
+  repository: gitExtension.Repository,
+  skipForOnlyOneRemote: boolean = false
+): Promise<string> {
+  if (repository.state.remotes.length === 1 && skipForOnlyOneRemote) {
+    return repository.state.remotes[0].name
+  }
+  const remote = await vscode.window.showQuickPick(
+    repository.state.remotes.map((r) => r.name),
+    {
+      placeHolder: 'Select remote',
+    }
+  )
+  if (!remote) {
+    throw new Error('remote is empty')
+  }
+  await vscode.workspace
+    .getConfiguration(SETTING_NAME)
+    .update('defaultRemote', remote, false)
+  return remote
+}
+
+async function defaultRemoteSelector(repository: gitExtension.Repository) {
   let defaultRemote = vscode.workspace.getConfiguration(SETTING_NAME)
     .defaultRemote as string
   if (defaultRemote === '') {
-    const remote = await vscode.window.showQuickPick(
-      repository.state.remotes.map((r) => r.name),
-      {
-        placeHolder: 'Select remote',
-      }
-    )
-    if (!remote) {
-      throw new Error('remote is empty')
-    }
-    await vscode.workspace
-      .getConfiguration(SETTING_NAME)
-      .update('defaultRemote', remote, false)
-    defaultRemote = remote
+    defaultRemote = await setDefaultRemote(repository, true)
   }
   const selectedRemote =
     repository.state.remotes.find((r) => r.name === defaultRemote) ??
@@ -32,34 +42,59 @@ async function getRemoteFromRepository(repository: gitExtension.Repository) {
   return selectedRemote
 }
 
+function currentRemoteSelector(repository: gitExtension.Repository) {
+  const currentBranch = repository.state.HEAD!
+  return (
+    repository.state.remotes.find(
+      (r) => r.name === currentBranch.upstream?.remote
+    ) ?? repository.state.remotes[0]
+  )
+}
+
+function copyLineLinkCommand(
+  repository: gitExtension.Repository,
+  remoteSelector: (
+    repository: gitExtension.Repository
+  ) => Promise<gitExtension.Remote> | gitExtension.Remote
+): () => Promise<void> {
+  return async () => {
+    const activatedEditor = vscode.window.activeTextEditor
+    if (activatedEditor) {
+      const selection = activatedEditor.selection
+      const startLine = selection.start.line
+      const endLine = selection.end.line
+      const currentPath = activatedEditor.document.uri
+      const remote = await remoteSelector(repository)
+      const template = getTemplateFromRemote(remote)
+      const lineLink = template({
+        relativePath: relative(repository.rootUri.fsPath, currentPath.fsPath),
+        branchOrCommit: repository.state.HEAD?.commit!,
+        beginLine: startLine + 1,
+        endLine: endLine === startLine ? undefined : endLine + 1,
+      })
+      vscode.env.clipboard.writeText(lineLink)
+      vscode.window.showInformationMessage('Copy success')
+    }
+  }
+}
+
 function registerCommand(
   context: vscode.ExtensionContext,
   repository: gitExtension.Repository
 ) {
-  const disposable = vscode.commands.registerCommand(
-    'git-line.copy-line-link',
-    async () => {
-      const activatedEditor = vscode.window.activeTextEditor
-      if (activatedEditor) {
-        const selection = activatedEditor.selection
-        const startLine = selection.start.line
-        const endLine = selection.end.line
-        const currentPath = activatedEditor.document.uri
-        const remote = await getRemoteFromRepository(repository)
-        const template = getTemplateFromRemote(remote)
-        const lineLink = template({
-          relativePath: relative(repository.rootUri.fsPath, currentPath.fsPath),
-          branchOrCommit: repository.state.HEAD?.commit!,
-          beginLine: startLine + 1,
-          endLine: endLine + 1,
-        })
-        vscode.env.clipboard.writeText(lineLink)
-        vscode.window.showInformationMessage('Copy success')
-      }
-    }
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'git-line.copy-line-link',
+      copyLineLinkCommand(repository, defaultRemoteSelector)
+    ),
+    vscode.commands.registerCommand(
+      'git-line.copy-line-link-current-remote',
+      copyLineLinkCommand(repository, currentRemoteSelector)
+    ),
+    vscode.commands.registerCommand('git-line.set-default-remote', async () => {
+      await setDefaultRemote(repository)
+    })
   )
-
-  context.subscriptions.push(disposable)
 }
 
 // This method is called when your extension is activated

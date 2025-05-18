@@ -18,13 +18,24 @@
     "commands": [
       {
         "command": "git-line.copy-line-link",
-        "title": "Copy the remote link of the current line"
+        "title": "Gitline: Copy the remote link of the current line"
+      },
+      {
+        "command": "git-line.copy-line-link-current-remote",
+        "title": "Gitline: Copy the remote link of the current line (current remote)"
+      },
+      {
+        "command": "git-line.set-default-remote",
+        "title": "Gitline: Set default remote"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "git-line.copy-line-link"
+        },
+        {
+          "command": "git-line.copy-line-link-current-remote"
         }
       ]
     },
