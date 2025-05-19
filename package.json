@@ -1,7 +1,17 @@
 {
   "name": "git-line",
   "displayName": "git-line",
-  "description": "empty",
+  "description": "Copy the remote link of the current line/selection. Support github/gitlab",
+  "publisher": "noiocok",
+  "author": {
+    "name": "N0I0C0K",
+    "url": "https://github.com/N0I0C0K"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/N0I0C0K/vscode-git-line"
+  },
   "version": "0.0.1",
   "engines": {
     "vscode": ">=1.96.2"
