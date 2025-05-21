@@ -28,11 +28,11 @@
     "commands": [
       {
         "command": "git-line.copy-line-link",
-        "title": "Gitline: Copy the remote link of the current line"
+        "title": "Gitline: copy link (default remote)"
       },
       {
         "command": "git-line.copy-line-link-current-remote",
-        "title": "Gitline: Copy the remote link of the current line (current remote)"
+        "title": "Gitline: copy link (current remote)"
       },
       {
         "command": "git-line.set-default-remote",

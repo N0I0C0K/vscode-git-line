@@ -51,11 +51,47 @@ function currentRemoteSelector(repository: gitExtension.Repository) {
   )
 }
 
+async function getSpecParentCommit(
+  commit: gitExtension.Commit,
+  repository: gitExtension.Repository,
+  n: number
+): Promise<string> {
+  if (n === 0) {
+    return commit.hash
+  }
+  if (commit.parents.length === 0) {
+    return commit.hash
+  }
+  return getSpecParentCommit(
+    await repository.getCommit(commit.parents[0]),
+    repository,
+    n - 1
+  )
+}
+
+function currentBranchHeadSelector(
+  repository: gitExtension.Repository
+): () => Promise<string> {
+  return async () => {
+    const head = repository.state.HEAD!
+    if (head.ahead === 0) {
+      return head.commit!
+    }
+
+    return await getSpecParentCommit(
+      await repository.getCommit(head.commit!),
+      repository,
+      head.ahead!
+    )
+  }
+}
+
 function copyLineLinkCommand(
   repository: gitExtension.Repository,
   remoteSelector: (
     repository: gitExtension.Repository
-  ) => Promise<gitExtension.Remote> | gitExtension.Remote
+  ) => Promise<gitExtension.Remote> | gitExtension.Remote,
+  branchOrCommitSelector: () => Promise<string> | string
 ): () => Promise<void> {
   return async () => {
     const activatedEditor = vscode.window.activeTextEditor
@@ -68,7 +104,7 @@ function copyLineLinkCommand(
       const template = getTemplateFromRemote(remote)
       const lineLink = template({
         relativePath: relative(repository.rootUri.fsPath, currentPath.fsPath),
-        branchOrCommit: repository.state.HEAD?.commit!,
+        branchOrCommit: await branchOrCommitSelector(),
         beginLine: startLine + 1,
         endLine: endLine === startLine ? undefined : endLine + 1,
       })
@@ -85,11 +121,19 @@ function registerCommand(
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'git-line.copy-line-link',
-      copyLineLinkCommand(repository, defaultRemoteSelector)
+      copyLineLinkCommand(
+        repository,
+        defaultRemoteSelector,
+        currentBranchHeadSelector(repository)
+      )
     ),
     vscode.commands.registerCommand(
       'git-line.copy-line-link-current-remote',
-      copyLineLinkCommand(repository, currentRemoteSelector)
+      copyLineLinkCommand(
+        repository,
+        currentRemoteSelector,
+        currentBranchHeadSelector(repository)
+      )
     ),
     vscode.commands.registerCommand('git-line.set-default-remote', async () => {
       await setDefaultRemote(repository)
