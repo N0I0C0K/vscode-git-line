@@ -6,7 +6,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- Initial release
+- ...
+
+## [0.0.3] - 2025-05-25
+
+### Added
+
+- Add setting to select identifier generator (commit hash or branch name)
+- Add keybinding for copy line link command
 
 ## [0.0.2] - 2025-05-22
 

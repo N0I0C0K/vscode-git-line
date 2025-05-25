@@ -57,9 +57,36 @@
           "type": "string",
           "default": "",
           "description": "The default remote to use when copying the remote link"
+        },
+        "gitline.identifierGenerator": {
+          "type": "string",
+          "enum": [
+            "commit",
+            "branch"
+          ],
+          "enumDescriptions": [
+            "Use the commit hash as the identifier",
+            "Use the branch name as the identifier"
+          ],
+          "enumItemLabels": [
+            "Commit",
+            "Branch"
+          ],
+          "default": "commit",
+          "description": "The identifier to use when generating the remote link"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "git-line.copy-line-link",
+        "when": "editorTextFocus && gitline.enabled",
+        "key": "shift+alt+l",
+        "mac": "shift+cmd+l",
+        "linux": "shift+alt+l",
+        "win": "shift+alt+l"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

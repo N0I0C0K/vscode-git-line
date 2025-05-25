@@ -4,6 +4,10 @@ function isWindowsPath(path: string): boolean {
   return /^[a-zA-Z]:\\/.test(path)
 }
 
+export function ensurePosixPath(path: string): string {
+  return path.replace(/\\/g, '/')
+}
+
 export function isDescendant(
   parent: string,
   descendant: string,
