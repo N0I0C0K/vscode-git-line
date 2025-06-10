@@ -12,7 +12,7 @@
     "type": "git",
     "url": "https://github.com/N0I0C0K/vscode-git-line"
   },
-  "version": "0.0.2",
+  "version": "0.0.4",
   "engines": {
     "vscode": ">=1.96.2"
   },
@@ -37,6 +37,10 @@
       {
         "command": "git-line.set-default-remote",
         "title": "Gitline: Set default remote"
+      },
+      {
+        "command": "git-line.copy-file-link",
+        "title": "Gitline: copy file link (default remote)"
       }
     ],
     "menus": {
@@ -46,6 +50,16 @@
         },
         {
           "command": "git-line.copy-line-link-current-remote"
+        }
+      ],
+      "editor/lineNumber/context": [
+        {
+          "command": "git-line.copy-line-link"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "git-line.copy-file-link"
         }
       ]
     },

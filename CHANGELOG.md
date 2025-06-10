@@ -6,7 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- ...
+
+## [0.0.4] - 2025-06-10
+
+### Added
+
+- Add copy file link command, available in editor title context menu
+- Add copy line link command, available in editor line number context menu
 
 ## [0.0.3] - 2025-05-25
 

@@ -5,6 +5,7 @@ Gitline is a VS Code extension that allows you to quickly copy the remote URL of
 ## Features
 
 - Copy the remote link of the current line or selection
+- Copy the remote link of the current file
 - Support for both GitHub and GitLab repositories
 - Set a default remote for repositories with multiple remotes
 - Quick access through context menu in the editor

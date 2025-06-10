@@ -13,6 +13,11 @@ import {
 } from './remote-selector'
 
 import { getIdentifierGeneratorFromSetting } from './identifier-generator'
+import {
+  getCurrentFileLocation,
+  getCurrentLineLocation,
+} from './location-generator'
+import { FileLocation } from './types/link'
 
 function copyLineLinkCommand(
   repository: gitExtension.Repository,
@@ -21,33 +26,36 @@ function copyLineLinkCommand(
   ) => Promise<gitExtension.Remote> | gitExtension.Remote,
   branchOrCommitSelector: (
     repository: gitExtension.Repository
-  ) => Promise<string> | string
+  ) => Promise<string> | string,
+  locationGenerator: () => Promise<FileLocation | undefined>
 ): () => Promise<void> {
   return async () => {
     const activatedEditor = vscode.window.activeTextEditor
-    if (activatedEditor) {
-      const selection = activatedEditor.selection
-      const startLine = selection.start.line
-      const endLine = selection.end.line
-      const currentPath = activatedEditor.document.uri
-      const remote = await remoteSelector(repository)
-      const template = getTemplateFromRemote(remote)
-
-      if (!currentPath.fsPath.startsWith(repository.rootUri.fsPath)) {
-        throw new Error('File is not in the repository')
-      }
-
-      const lineLink = template({
-        relativePath: ensurePosixPath(
-          relative(repository.rootUri.fsPath, currentPath.fsPath)
-        ),
-        branchOrCommit: await branchOrCommitSelector(repository),
-        beginLine: startLine + 1,
-        endLine: endLine === startLine ? undefined : endLine + 1,
-      })
-      vscode.env.clipboard.writeText(lineLink)
-      vscode.window.showInformationMessage('Copy success')
+    if (!activatedEditor) {
+      return
     }
+    const fileLocation = await locationGenerator()
+    if (!fileLocation) {
+      return
+    }
+    const { path, beginLine, endLine } = fileLocation
+    const remote = await remoteSelector(repository)
+    const template = getTemplateFromRemote(remote)
+
+    if (!path.fsPath.startsWith(repository.rootUri.fsPath)) {
+      throw new Error('File is not in the repository')
+    }
+
+    const lineLink = template({
+      relativePath: ensurePosixPath(
+        relative(repository.rootUri.fsPath, path.fsPath)
+      ),
+      branchOrCommit: await branchOrCommitSelector(repository),
+      beginLine: beginLine,
+      endLine: endLine,
+    })
+    vscode.env.clipboard.writeText(lineLink)
+    vscode.window.showInformationMessage('Copy success')
   }
 }
 
@@ -61,7 +69,8 @@ function registerCommand(
       copyLineLinkCommand(
         repository,
         defaultRemoteSelector,
-        getIdentifierGeneratorFromSetting
+        getIdentifierGeneratorFromSetting,
+        getCurrentLineLocation
       )
     ),
     vscode.commands.registerCommand(
@@ -69,7 +78,17 @@ function registerCommand(
       copyLineLinkCommand(
         repository,
         currentRemoteSelector,
-        getIdentifierGeneratorFromSetting
+        getIdentifierGeneratorFromSetting,
+        getCurrentLineLocation
+      )
+    ),
+    vscode.commands.registerCommand(
+      'git-line.copy-file-link',
+      copyLineLinkCommand(
+        repository,
+        defaultRemoteSelector,
+        getIdentifierGeneratorFromSetting,
+        getCurrentFileLocation
       )
     ),
     vscode.commands.registerCommand('git-line.set-default-remote', async () => {

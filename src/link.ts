@@ -1,4 +1,5 @@
-import { Remote } from './types/git'
+import type { Remote } from './types/git'
+import type { LinkTemplate, LinkTemplateParams } from './types/link'
 
 /**
  * parse git remote url into raw http url
@@ -22,22 +23,19 @@ function getBaseUrlFromRemote(remote: Remote): string {
   }
 }
 
-export interface LinkTemplateParams {
-  relativePath: string
-  branchOrCommit: string
-  beginLine: number
-  endLine?: number
-}
-export type LinkTemplate = (params: LinkTemplateParams) => string
-
 function commonTemplate(
   baseUrl: string,
   blobPath: string,
   params: LinkTemplateParams
 ): string {
   const { relativePath, branchOrCommit, beginLine, endLine } = params
-  const line = endLine ? `L${beginLine}-L${endLine}` : `L${beginLine}`
-  return `${baseUrl}/${blobPath}/${branchOrCommit}/${relativePath}#${line}`
+  const line = beginLine
+    ? endLine
+      ? `L${beginLine}-L${endLine}`
+      : `L${beginLine}`
+    : null
+  const lineSuffix = line ? `#${line}` : ''
+  return `${baseUrl}/${blobPath}/${branchOrCommit}/${relativePath}${lineSuffix}`
 }
 
 function getTemplateFromBaseUrl(baseUrl: string): LinkTemplate {
@@ -54,14 +52,4 @@ function getTemplateFromBaseUrl(baseUrl: string): LinkTemplate {
 export function getTemplateFromRemote(remote: Remote): LinkTemplate {
   const baseUrl = getBaseUrlFromRemote(remote)
   return getTemplateFromBaseUrl(baseUrl)
-}
-
-export function getRemoteUrlPointLine(
-  relativePath: string,
-  line: number,
-  remote: Remote,
-  branchOrCommit: string
-): string {
-  const template = getTemplateFromRemote(remote)
-  return template({ relativePath, branchOrCommit, beginLine: line })
 }
