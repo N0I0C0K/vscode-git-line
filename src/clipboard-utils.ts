@@ -1,9 +1,6 @@
 import * as vscode from 'vscode'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { writeFileSync, unlinkSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
 
 const execAsync = promisify(exec)
 
@@ -63,13 +60,11 @@ async function writeMacOSHtmlClipboard(
   htmlText: string,
   fallbackText: string
 ): Promise<void> {
-  // Create a temporary file with the HTML content
-  const tempFile = join(tmpdir(), `vscode-git-line-${Date.now()}.html`)
-  writeFileSync(tempFile, htmlText, 'utf-8')
-
   try {
-    // Use textutil to convert HTML to RTF and copy to clipboard
-    await execAsync(`cat "${tempFile}" | textutil -stdin -stdout -format html -convert rtf | pbcopy -Prefer rtf`)
+    // Use echo with pipe to avoid temporary files
+    // Convert HTML to RTF using textutil and copy to clipboard
+    const escapedHtml = htmlText.replace(/'/g, "'\\''")
+    await execAsync(`echo '${escapedHtml}' | textutil -stdin -stdout -format html -convert rtf | pbcopy -Prefer rtf`)
   } catch (error) {
     // Fallback: just copy as HTML using osascript
     const appleScript = `osascript -e 'set the clipboard to "${escapeForAppleScript(htmlText)}"'`
@@ -77,12 +72,6 @@ async function writeMacOSHtmlClipboard(
       await execAsync(appleScript)
     } catch (e) {
       // Final fallback - do nothing, plain text is already copied
-    }
-  } finally {
-    try {
-      unlinkSync(tempFile)
-    } catch (e) {
-      // Ignore cleanup errors
     }
   }
 }
@@ -97,30 +86,13 @@ async function writeWindowsHtmlClipboard(
   // Windows Clipboard format requires specific HTML header
   const htmlClipboardFormat = generateWindowsHtmlFormat(htmlText)
   
-  // Create a temporary PowerShell script
-  const tempScript = join(tmpdir(), `vscode-git-line-${Date.now()}.ps1`)
-  const powershellScript = `
-Add-Type -AssemblyName System.Windows.Forms
-$html = @"
-${htmlClipboardFormat.replace(/\$/g, '`$')}
-"@
-$dataObject = New-Object System.Windows.Forms.DataObject
-$dataObject.SetData([System.Windows.Forms.DataFormats]::Html, $html)
-$dataObject.SetData([System.Windows.Forms.DataFormats]::Text, "${fallbackText.replace(/\\/g, '\\\\').replace(/"/g, '`"')}")
-[System.Windows.Forms.Clipboard]::SetDataObject($dataObject, $true)
-`
-
-  writeFileSync(tempScript, powershellScript, 'utf-8')
+  // Execute PowerShell inline without creating a temporary script file
+  const escapedHtml = htmlClipboardFormat.replace(/\$/g, '`$').replace(/"/g, '`"')
+  const escapedText = fallbackText.replace(/\\/g, '\\\\').replace(/"/g, '`"')
   
-  try {
-    await execAsync(`powershell -ExecutionPolicy Bypass -File "${tempScript}"`)
-  } finally {
-    try {
-      unlinkSync(tempScript)
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-  }
+  const powershellCommand = `Add-Type -AssemblyName System.Windows.Forms; $html = "${escapedHtml}"; $dataObject = New-Object System.Windows.Forms.DataObject; $dataObject.SetData([System.Windows.Forms.DataFormats]::Html, $html); $dataObject.SetData([System.Windows.Forms.DataFormats]::Text, "${escapedText}"); [System.Windows.Forms.Clipboard]::SetDataObject($dataObject, $true)`
+  
+  await execAsync(`powershell -Command "${powershellCommand}"`)
 }
 
 /**
@@ -130,25 +102,17 @@ async function writeLinuxHtmlClipboard(
   htmlText: string,
   fallbackText: string
 ): Promise<void> {
-  // Create a temporary file with the HTML content
-  const tempFile = join(tmpdir(), `vscode-git-line-${Date.now()}.html`)
-  writeFileSync(tempFile, htmlText, 'utf-8')
-
   try {
-    // Try xclip first (most common)
-    await execAsync(`xclip -selection clipboard -t text/html -i "${tempFile}"`)
+    // Use echo with pipe to avoid temporary files
+    const escapedHtml = htmlText.replace(/'/g, "'\\''")
+    await execAsync(`echo '${escapedHtml}' | xclip -selection clipboard -t text/html`)
   } catch (error) {
     try {
-      // Fallback to wl-copy (Wayland)
-      await execAsync(`wl-copy --type text/html < "${tempFile}"`)
+      // Fallback to wl-copy (Wayland) with stdin
+      const escapedHtml = htmlText.replace(/'/g, "'\\''")
+      await execAsync(`echo '${escapedHtml}' | wl-copy --type text/html`)
     } catch (error2) {
       // Final fallback - do nothing, plain text is already copied
-    }
-  } finally {
-    try {
-      unlinkSync(tempFile)
-    } catch (e) {
-      // Ignore cleanup errors
     }
   }
 }
