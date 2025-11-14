@@ -5,6 +5,7 @@ import * as gitExtension from './types/git'
 import { ensurePosixPath, isDescendant } from './utils'
 import { getTemplateFromRemote } from './link'
 import { relative } from 'path'
+import { writeToClipboard } from './clipboard-utils'
 
 import {
   defaultRemoteSelector,
@@ -54,7 +55,28 @@ function copyLineLinkCommand(
       beginLine: beginLine,
       endLine: endLine,
     })
-    vscode.env.clipboard.writeText(lineLink)
+    
+    // Get selected text if there is a selection
+    const selection = activatedEditor.selection
+    const selectedText = !selection.isEmpty 
+      ? activatedEditor.document.getText(selection)
+      : undefined
+    
+    // If text is selected, create HTML with the link
+    let htmlText: string | undefined
+    if (selectedText && selectedText.trim()) {
+      // Escape HTML special characters in the selected text
+      const escapedText = selectedText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+      
+      htmlText = `<a href="${lineLink}">${escapedText}</a>`
+    }
+    
+    await writeToClipboard(lineLink, htmlText)
     vscode.window.showInformationMessage('Copy success')
   }
 }
