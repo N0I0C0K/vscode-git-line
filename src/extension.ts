@@ -77,7 +77,6 @@ function copyLineLinkCommand(
     }
     
     await writeToClipboard(lineLink, htmlText)
-    vscode.window.showInformationMessage('Copy success')
   }
 }
 

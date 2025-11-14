@@ -7,6 +7,18 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 
+## [0.0.5] - 2025-11-14
+
+### Added
+
+- Rich text clipboard support: When text is selected, copy both plain text URL and HTML hyperlink
+- Selected text becomes a clickable link in rich text editors (Slack, GitHub, Gmail, etc.)
+- Platform-specific HTML clipboard implementation for macOS, Windows, and Linux
+
+### Changed
+
+- Removed success notification message when copying links
+
 ## [0.0.4] - 2025-06-10
 
 ### Added
