@@ -73,7 +73,15 @@ function copyLineLinkCommand(
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;')
       
-      htmlText = `<a href="${lineLink}">${escapedText}</a>`
+      // Escape HTML special characters in the URL
+      const escapedUrl = lineLink
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+      
+      htmlText = `<a href="${escapedUrl}">${escapedText}</a>`
     }
     
     await writeToClipboard(lineLink, htmlText)
