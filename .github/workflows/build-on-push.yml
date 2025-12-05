@@ -15,6 +15,10 @@ on:
       - main
       - master
       - develop
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
 
 jobs:
   build:
@@ -38,9 +42,12 @@ jobs:
       - name: Compile TypeScript
         run: npm run compile
       
-      - name: Upload compiled artifacts
+      - name: Package extension
+        run: npx @vscode/vsce package
+      
+      - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-extension-${{ github.sha }}
-          path: out/
+          name: extension-${{ github.sha }}
+          path: '*.vsix'
           retention-days: 30
