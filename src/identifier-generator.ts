@@ -54,11 +54,15 @@ export async function getIdentifierGeneratorFromSetting(
   if (identifierGenerator === 'commit') {
     return await currentBranchHeadSelector(repository)
   } else if (identifierGenerator === 'branch') {
-    const head = repository.state.HEAD!
-    if (!head.name) {
-      return head.commit!
+    try {
+      return currentBranchNameSelector(repository)
+    } catch {
+      vscode.window.showWarningMessage(
+        'Gitline: "identifierGenerator" is set to "branch", ' +
+          'but the repository is in a detached HEAD state. Falling back to using the commit hash.'
+      )
+      return repository.state.HEAD!.commit!
     }
-    return currentBranchNameSelector(repository)
   } else {
     throw new Error(`Unsupport identifier generator ${identifierGenerator}`)
   }
