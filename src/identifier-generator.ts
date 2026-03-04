@@ -25,21 +25,25 @@ export async function currentBranchHeadSelector(
   repository: gitExtension.Repository
 ): Promise<string> {
   const head = repository.state.HEAD!
-  if (head.ahead === 0) {
+  if (head.ahead === undefined || head.ahead === 0) {
     return head.commit!
   }
 
   return await getSpecParentCommit(
     await repository.getCommit(head.commit!),
     repository,
-    head.ahead!
+    head.ahead
   )
 }
 
 export function currentBranchNameSelector(
   repository: gitExtension.Repository
 ): string {
-  return repository.state.HEAD!.name!
+  const name = repository.state.HEAD?.name
+  if (!name) {
+    throw new Error('Not on a branch (detached HEAD state)')
+  }
+  return name
 }
 
 export async function getIdentifierGeneratorFromSetting(
@@ -50,7 +54,15 @@ export async function getIdentifierGeneratorFromSetting(
   if (identifierGenerator === 'commit') {
     return await currentBranchHeadSelector(repository)
   } else if (identifierGenerator === 'branch') {
-    return currentBranchNameSelector(repository)
+    try {
+      return currentBranchNameSelector(repository)
+    } catch {
+      vscode.window.showWarningMessage(
+        'Gitline: "identifierGenerator" is set to "branch", ' +
+          'but the repository is in a detached HEAD state. Falling back to using the commit hash.'
+      )
+      return repository.state.HEAD!.commit!
+    }
   } else {
     throw new Error(`Unsupport identifier generator ${identifierGenerator}`)
   }
